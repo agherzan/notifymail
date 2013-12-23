@@ -1,0 +1,25 @@
+#
+# notifmail configuration file
+#
+
+# One section per email account
+[gmail]
+
+# IMAP server - required
+imap_server=imap.gmail.com
+
+# IMAP username - required
+imap_user=jack.mitch@gmail.com
+
+# IMAP password - required
+imap_password=NeedABetterPassword
+
+# notifmail will generate a new notification for every new email in these mailboxes
+# Separate entries by ";"
+# By default Inbox is used.
+all=Inbox;[Gmail]/Spam
+
+# notifmail will generate one summary notification for all these mailboxes
+# Separate entries by ";"
+# By default no summary notifications are generated.
+summary=[Gmail]/Trash

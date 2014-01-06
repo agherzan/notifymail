@@ -1,0 +1,54 @@
+Contents
+========
+
+1. Description
+2. Installation
+    2.A. Prerequisites
+    2.B. Install
+3. Configuration
+4. Running notifmail
+
+
+1. Description
+==============
+
+notifmail is an email daemon checker which uses libnotify to pull for new email
+from IMAP servers. It is written in python. Easy to configure and use.
+
+
+2. Installation
+===============
+
+2.A. Prerequsites
+-----------------
+
+Have python and needed libraries on host:
+- python
+- libnotify2 for python
+- openssl
+
+Example - Fedora:
+$ sudo yum install python notify-python openssl
+
+
+2.B. Install
+------------
+
+$ cd <notifmail git clone directory>
+$ sudo ./setup.py install
+
+
+3. Configuration
+================
+
+notifmail uses a configuration for connection to IMAP server and for other
+configurations. A sample file one is packaged in the sources as
+"notifmail.conf.sample". To get started copy this file in ~/.notifmail:
+$ cp ./notifmail.conf.sample ~/.notifmail
+
+Edit ~/.notifmail/notifmail.conf.sample with your configuration.
+
+4. Running notifmail
+====================
+
+$ notifmail

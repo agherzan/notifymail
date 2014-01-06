@@ -29,18 +29,21 @@
 # Author: Andrei Gherzan <andrei@gherzan.ro>
 #
 
-import sys
-import imaplib
-import notify2
-import getpass
-import email.Header
-import ConfigParser
-import os
-import urllib2
-import getopt
-import logging
-import signal
-from time import sleep
+try:
+    import sys
+    import imaplib
+    import pynotify
+    import email.Header
+    import ConfigParser
+    import os
+    import urllib2
+    import getopt
+    import logging      # to check internet connection
+    import signal
+    from time import sleep
+except:
+    print "ERROR : Can't import at least one module. Check README."
+    sys.exit(1)
 
 # Global variables which stand as default values
 TESTURL             = "http://www.google.com"
@@ -172,9 +175,12 @@ class Imapaccount:
                     # Avoid messing up with markups so remove < and >
                     sender = email_message['From'].translate(None,'<>')
                     subject = email.Header.decode_header(email_message['Subject'])[0][0]
-                    notification = notify2.Notification("YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
-                    notification.set_urgency(notify2.URGENCY_LOW)
-                    notification.show()
+                    notification = pynotify.Notification("YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
+                    notification.set_urgency(pynotify.URGENCY_LOW)
+                    try:
+                        notification.show()
+                    except:
+                        log.error("Can't show notification. Is your notification daemon running?")
                     # Mark message shown
                     self.shownuids.append(uid)
                 else:
@@ -195,9 +201,12 @@ class Imapaccount:
                 continue
             description += "<b>" + mailbox + "</b>" + ": " + str(len(messages[0].split())) + " new messsages.\n"
         if description:
-            notification = notify2.Notification(summary, description)
-            notification.set_urgency(notify2.URGENCY_LOW)
-            notification.show()
+            notification = pynotify.Notification(summary, description)
+            notification.set_urgency(pynotify.URGENCY_LOW)
+            try:
+                notification.show()
+            except:
+                log.error("Can't show notification. Is your notification daemon running?")
 
     def sendNotifications(self):
         """
@@ -336,7 +345,7 @@ def main():
         log.warn("No such configuration file. Using default.")
         conffile = CONFIGURATIONFILE
 
-    notify2.init("notifmail")
+    pynotify.init("notifmail")
 
     imapaccounts = ReadConfiguration(conffile)
     if not imapaccounts:

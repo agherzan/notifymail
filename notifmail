@@ -328,20 +328,24 @@ def main():
             log.error("Unparsed error.")
             sys.exit(1)
 
-    # Daemon
-    if not foreground:
-        context = daemon.DaemonContext()
-        context.signal_map = {signal.SIGTTIN: stopHandler}
-        context.open()
-
     logfile = os.path.expanduser(logfile)
     logfile = os.path.normpath(logfile)
     conffile = os.path.expanduser(conffile)
     conffile = os.path.normpath(conffile)
 
+    # Daemon
+    if not foreground:
+        context = daemon.DaemonContext()
+        context.open()
+
     # Make sure APPHOME exists
     if not os.path.exists(os.path.expanduser(APPHOME)):
         os.makedirs(os.path.expanduser(APPHOME))
+
+    # If logfile if below the maximum logfile size - get rid of it
+    if os.path.isfile(logfile) and os.stat(logfile).st_size > maxlogsize:
+        log.warn("Logfile %s got over %d bytes. Removing logfile.", logfile, maxlogsize)
+        os.remove(logfile)
 
     # Log to file
     try:
@@ -351,11 +355,6 @@ def main():
         sys.exit(1)
     fh.setFormatter(logformatter)
     log.addHandler(fh)
-
-    # If logfile if below the maximum logfile size - get rid of it
-    if os.path.isfile(logfile) and os.stat(logfile).st_size > maxlogsize:
-        log.warn("Logfile %s got over %d bytes. Removing logfile.", logfile, maxlogsize)
-        os.remove(logfile)
 
     log.debug("notifmail STARTED.")
 

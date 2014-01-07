@@ -50,13 +50,11 @@ except:
 TESTURL             = "http://www.google.com"
 APPHOME             = "~/.notifmail"
 CONFIGURATIONFILE   = APPHOME + "/notifmail.conf"
+LOCKFILE            = APPHOME + "/notifmail.lock"
 LOGFILE             = APPHOME + "/notifmail.log"
 MAXLOGSIZE          = 1048576
 SECONDS             = 60
 LOGLEVEL            = 30
-
-# Context for daemon
-context = None
 
 # Logger
 log = logging.getLogger()
@@ -79,14 +77,14 @@ def Usage():
     print "                         :   10 - DEBUG"
     print "     -m | --maxlogsize   :   Maximum size in bytes for log file. [default=1048576]"
     print "     -f | --foreground   :   Run program in foreground. By default notifmail runs as daemon."
+    print "     -k | --kill         :   Kill an already running daemon"
 
 def stopHandler(signum, frame):
     """
-    Handler for stop sognals
+    Handler for stop signals
     """
+    os.remove(os.path.normpath(os.path.expanduser(LOCKFILE)))
     log.debug("notifmail STOPPED")
-    if context:
-        context.close()
     sys.exit(0)
 
 """
@@ -281,6 +279,7 @@ def main():
     loglevel = LOGLEVEL
     maxlogsize = MAXLOGSIZE
     foreground = False
+    kill = False
 
     # Setting up the logging module
     logformatter = logging.Formatter('%(asctime)s - %(levelname)s : %(message)s')
@@ -292,7 +291,7 @@ def main():
     log.addHandler(ch)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hs:l:c:L:m:f', ['help', 'seconds=', 'log=', 'config=', 'loglevel', 'maxlogsize=', 'foreground'])
+        opts, args = getopt.getopt(sys.argv[1:], 'hs:l:c:L:m:fk', ['help', 'seconds=', 'log=', 'config=', 'loglevel', 'maxlogsize=', 'foreground', 'kill'])
     except getopt.GetoptError as err:
         print str(err)
         Usage()
@@ -324,14 +323,16 @@ def main():
             maxlogsize = int(argument)
         elif option in ['-f', '--foreground']:
             foreground = True
+        elif option in ['-k', '--kill']:
+            kill = True
+            foreground = True
         else:
             log.error("Unparsed error.")
             sys.exit(1)
 
-    logfile = os.path.expanduser(logfile)
-    logfile = os.path.normpath(logfile)
-    conffile = os.path.expanduser(conffile)
-    conffile = os.path.normpath(conffile)
+    logfile  = os.path.normpath(os.path.expanduser(logfile))
+    conffile = os.path.normpath(os.path.expanduser(conffile))
+    lockfile = os.path.normpath(os.path.expanduser(LOCKFILE))
 
     # Daemon
     if not foreground:
@@ -357,6 +358,38 @@ def main():
     log.addHandler(fh)
 
     log.debug("notifmail STARTED.")
+
+    # Lock file
+    if os.access(lockfile, os.F_OK):
+        # There is already a lockfile
+         pidfile = open(lockfile, "r")
+         pidfile.seek(0)
+         pid = pidfile.readline()
+         pidfile.close()
+         # Is there such PID still running?
+         if os.path.exists('/proc/%s' % pid):
+            if kill:
+                log.warning('Killing %s.' % pid)
+                os.kill(int(pid), signal.SIGINT)
+                sys.exit(0)
+            else:
+                log.error('notifmail is already running [%s].', pid)
+                sys.exit(1)
+         else:
+            if kill:
+                log.error('There is no running notifmail daemon.')
+                sys.exit(1)
+            else:
+                # Remove lockfile
+                log.debug('Removing stale lockfile.')
+                os.remove(lockfile)
+    else:
+        if kill:
+            log.error('There is no running notifmail daemon.')
+            sys.exit(1)
+    pidfile = open(lockfile, "w")
+    pidfile.write('%s' % os.getpid())
+    pidfile.close()
 
     if not os.path.isfile(conffile):
         log.warn("No such configuration file. Using default.")

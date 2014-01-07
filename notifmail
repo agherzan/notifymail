@@ -187,8 +187,8 @@ class Imapaccount:
                     notification.set_urgency(pynotify.URGENCY_LOW)
                     try:
                         notification.show()
-                    except:
-                        log.error("Can't show notification. Is your notification daemon running?")
+                    except Exception as e:
+                        log.error("%s.", str(e))
                     # Mark message shown
                     self.shownuids.append(uid)
                 else:
@@ -213,8 +213,8 @@ class Imapaccount:
             notification.set_urgency(pynotify.URGENCY_LOW)
             try:
                 notification.show()
-            except:
-                log.error("Can't show notification. Is your notification daemon running?")
+            except Exception as e:
+                log.error("%s.", str(e))
 
     def sendNotifications(self):
         """

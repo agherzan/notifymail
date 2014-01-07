@@ -26,9 +26,10 @@ Have python and needed libraries on host:
 - python
 - libnotify2 for python
 - openssl
+- python-daemon
 
 Example - Fedora:
-$ sudo yum install python notify-python openssl
+$ sudo yum install python notify-python openssl python-daemon
 
 
 2.B. Install

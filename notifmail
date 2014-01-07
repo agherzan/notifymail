@@ -41,6 +41,7 @@ try:
     import logging      # to check internet connection
     import signal
     from time import sleep
+    import daemon
 except:
     print "ERROR : Can't import at least one module. Check README."
     sys.exit(1)
@@ -53,6 +54,9 @@ LOGFILE             = APPHOME + "/notifmail.log"
 MAXLOGSIZE          = 1048576
 SECONDS             = 60
 LOGLEVEL            = 30
+
+# Context for daemon
+context = None
 
 # Logger
 log = logging.getLogger()
@@ -74,12 +78,15 @@ def Usage():
     print "                         :   20 - INFO"
     print "                         :   10 - DEBUG"
     print "     -m | --maxlogsize   :   Maximum size in bytes for log file. [default=1048576]"
+    print "     -f | --foreground   :   Run program in foreground. By default notifmail runs as daemon."
 
-def sigIntHandler(signum, frame):
+def stopHandler(signum, frame):
     """
-    Handler fir signal interrupt
+    Handler for stop sognals
     """
-    log.debug("notifmail INTERRUPTED")
+    log.debug("notifmail STOPPED")
+    if context:
+        context.close()
     sys.exit(0)
 
 """
@@ -264,7 +271,7 @@ def main():
     MAIN
     """
 
-    signal.signal(signal.SIGINT, sigIntHandler)
+    signal.signal(signal.SIGINT, stopHandler)
 
     # Array of accounts
     imapaccounts = []
@@ -273,6 +280,7 @@ def main():
     conffile = CONFIGURATIONFILE
     loglevel = LOGLEVEL
     maxlogsize = MAXLOGSIZE
+    foreground = False
 
     # Setting up the logging module
     logformatter = logging.Formatter('%(asctime)s - %(levelname)s : %(message)s')
@@ -284,7 +292,7 @@ def main():
     log.addHandler(ch)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hs:l:c:L:m:', ['help', 'seconds=', 'log=', 'config=', 'loglevel', 'maxlogsize='])
+        opts, args = getopt.getopt(sys.argv[1:], 'hs:l:c:L:m:f', ['help', 'seconds=', 'log=', 'config=', 'loglevel', 'maxlogsize=', 'foreground'])
     except getopt.GetoptError as err:
         print str(err)
         Usage()
@@ -314,9 +322,17 @@ def main():
                 sys.exit(1)
         elif option in ['-m', '--maxlogsize']:
             maxlogsize = int(argument)
+        elif option in ['-f', '--foreground']:
+            foreground = True
         else:
             log.error("Unparsed error.")
             sys.exit(1)
+
+    # Daemon
+    if not foreground:
+        context = daemon.DaemonContext()
+        context.signal_map = {signal.SIGTTIN: stopHandler}
+        context.open()
 
     logfile = os.path.expanduser(logfile)
     logfile = os.path.normpath(logfile)
@@ -361,4 +377,4 @@ def main():
         sleep(float(seconds))
 
 if __name__ == "__main__":
-    ret = main()
+    main()

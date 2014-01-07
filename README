@@ -44,7 +44,8 @@ $ sudo ./setup.py install
 notifmail uses a configuration for connection to IMAP server and for other
 configurations. A sample file one is packaged in the sources as
 "notifmail.conf.sample". To get started copy this file in ~/.notifmail:
-$ cp ./notifmail.conf.sample ~/.notifmail
+$ mkdir ~/.notifmail
+$ cp ./notifmail.conf.sample ~/.notifmail/notifmail.conf
 
 Edit ~/.notifmail/notifmail.conf.sample with your configuration.
 

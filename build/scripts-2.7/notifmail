@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/python
 
 #
 # ** The MIT License **
@@ -322,7 +322,7 @@ def main():
     conffile = os.path.normpath(conffile)
 
     # Make sure APPHOME exists
-    if not os.path.exists(os.path.expanduser(APPHOME)):
+    if not os.path.isdir(os.path.expanduser(APPHOME)):
         os.makedirs(os.path.expanduser(APPHOME))
 
     # Log to file

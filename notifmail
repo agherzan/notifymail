@@ -86,10 +86,11 @@ def sigIntHandler(signum, frame):
 Class for storing an IMAP account
 """
 class Imapaccount:
-    def __init__ (self, imap_server, imap_user, imap_password):
+    def __init__ (self, name, imap_server, imap_user, imap_password):
         """
         Constructor
         """
+        self.name = name
         self.imap_server = imap_server
         self.imap_user = imap_user
         self.imap_password = imap_password
@@ -106,7 +107,7 @@ class Imapaccount:
 
     def Connect(self):
         """
-        Connect to sevrer
+        Connect to server
         """
         log.debug("Connecting to %s.", self.imap_server)
         if not self.mail:
@@ -175,7 +176,7 @@ class Imapaccount:
                     # Avoid messing up with markups so remove < and >
                     sender = email_message['From'].translate(None,'<>')
                     subject = email.Header.decode_header(email_message['Subject'])[0][0]
-                    notification = pynotify.Notification("YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
+                    notification = pynotify.Notification(self.name + ": YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
                     notification.set_urgency(pynotify.URGENCY_LOW)
                     try:
                         notification.show()
@@ -192,7 +193,7 @@ class Imapaccount:
         """
         Send a summary notification for all messages
         """
-        summary = "NEW EMAILS SUMMARY"
+        summary = self.name + ": NEW EMAILS SUMMARY"
         description = ""
         for mailbox in self.summarynotif:
             messages = self.getMessages(mailbox=mailbox)
@@ -241,9 +242,10 @@ def ReadConfiguration(conffile):
     for section in config.sections():
         # Check if account contains all needed options
         if set(required).intersection(set(config.options(section))) == set(required):
-            account = Imapaccount(config.get(section, required[0]),
-                                  config.get(section, required[1]),
-                                  config.get(section, required[2]))
+            account = Imapaccount(name=section,
+                                  imap_server=config.get(section, required[0]),
+                                  imap_user=config.get(section, required[1]),
+                                  imap_password=config.get(section, required[2]))
             if config.has_option(section,'all'):
                 for folder in config.get(section, 'all').split(';'):
                     account.allnotif.append(folder)

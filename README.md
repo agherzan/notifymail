@@ -22,20 +22,21 @@ B. Installation
 
 B.1. Prerequisites
 ------------------
-Have python and needed libraries on host:
+Have python and other prerequisites on host:
 
 * python
-* python-notify
+* python-notify2
 * openssl
 * python-daemon
 
 Example - Fedora:
 
-    $ sudo yum install python notify-python openssl python-daemon
+    $ sudo yum install python openssl python-daemon python-pip
+    $ sudo pip install notify2
 
 Example - Ubuntu:
 
-    $ sudo apt-get install python python-notify openssl python-daemon
+    $ sudo apt-get install python python-notify2 openssl python-daemon
 
 B.2. Install
 ------------

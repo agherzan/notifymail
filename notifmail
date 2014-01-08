@@ -36,7 +36,7 @@
 try:
     import sys
     import imaplib
-    import pynotify
+    import notify2
     import email.Header
     import ConfigParser
     import os
@@ -190,8 +190,8 @@ class Imapaccount:
                     # Avoid messing up with markups so remove < and >
                     sender = email_message['From'].translate(None,'<>')
                     subject = email.Header.decode_header(email_message['Subject'])[0][0]
-                    notification = pynotify.Notification(self.name + ": YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
-                    notification.set_urgency(pynotify.URGENCY_LOW)
+                    notification = notify2.Notification(self.name + ": YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
+                    notification.set_urgency(notify2.URGENCY_LOW)
                     if not dryrun:
                         try:
                             notification.show()
@@ -217,8 +217,8 @@ class Imapaccount:
                 continue
             description += "<b>" + mailbox + "</b>" + ": " + str(len(messages[0].split())) + " new messsages.\n"
         if description:
-            notification = pynotify.Notification(summary, description)
-            notification.set_urgency(pynotify.URGENCY_LOW)
+            notification = notify2.Notification(summary, description)
+            notification.set_urgency(notify2.URGENCY_LOW)
             try:
                 notification.show()
             except Exception as e:
@@ -460,7 +460,7 @@ def main():
         log.warn("No such configuration file. Using default.")
         conffile = os.path.normpath(os.path.expanduser(CONFIGURATIONFILE))
 
-    pynotify.init("notifmail")
+    notify2.init("notifmail")
 
     imapaccounts = ReadConfiguration(conffile)
     if not imapaccounts:

@@ -24,6 +24,10 @@
 # SOFTWARE.
 #
 
+#
+# notifmail is an email daemon checker which notifies system about new emails on
+# configured IMAP servers.
+#
 # Home: https://github.com/agherzan/notifmail
 #
 # Author: Andrei Gherzan <andrei@gherzan.ro>
@@ -42,8 +46,11 @@ try:
     import signal
     from time import sleep
     import daemon
-except:
+    import hashlib
+    from notifmail_utils import aesCryptor
+except Exception as e:
     print "ERROR : Can't import at least one module. Check README."
+    print "ERROR :" , str(e)
     sys.exit(1)
 
 # Global variables which stand as default values
@@ -52,6 +59,7 @@ APPHOME             = "~/.notifmail"
 CONFIGURATIONFILE   = APPHOME + "/notifmail.conf"
 LOCKFILE            = APPHOME + "/notifmail.lock"
 LOGFILE             = APPHOME + "/notifmail.log"
+KEYFILE             = APPHOME + "/notifmail.key"
 MAXLOGSIZE          = 1048576
 SECONDS             = 60
 LOGLEVEL            = 30
@@ -234,6 +242,14 @@ def ReadConfiguration(conffile):
     """
     Read configuration
     """
+    # Cryptor
+    keyfile = os.path.normpath(os.path.expanduser(KEYFILE))
+    try:
+        cryptor = aesCryptor(keyfile)
+    except Exception as e:
+        log.error("Can't create cryptor - %s.", str(e))
+        return []
+
     imapaccounts = []
     required = ['imap_server', 'imap_user', 'imap_password']
     config = ConfigParser.ConfigParser()
@@ -245,12 +261,38 @@ def ReadConfiguration(conffile):
     log.debug("Parsing configuration file %s.", conffile)
 
     for section in config.sections():
+
+        # Flag if an encryption was done so config needs to be updated
+        need_config_update = False
+
         # Check if account contains all needed options
         if set(required).intersection(set(config.options(section))) == set(required):
+            # Make sure the password is encrypted
+            if not config.has_option(section, 'keyfile_sha256'):
+                log.debug("Ecryping password for %s." % section)
+                config.set(section, 'imap_password',
+                    cryptor.encode(config.get(section, 'imap_password'))
+                    )
+                config.set(section, 'keyfile_sha256', hashlib.sha256(cryptor.key).hexdigest())
+                need_config_update = True
+
+            # Password is now surely encrypted
+            # Check if the currrent key is the same as the one used to generate the passwords
+            if hashlib.sha256(cryptor.key).hexdigest() != config.get(section, 'keyfile_sha256'):
+                log.error("A different key was used when encoding password for %s. Skipping account.", section)
+                continue
+
+            log.debug("Decryping password for %s." % section)
+            try:
+                imap_password = cryptor.decode(config.get(section, 'imap_password'))
+            except:
+                log.error("Cannot decrypt password for %s. Skipping account." % section)
+                continue
+
             account = Imapaccount(name=section,
                                   imap_server=config.get(section, required[0]),
                                   imap_user=config.get(section, required[1]),
-                                  imap_password=config.get(section, required[2]))
+                                  imap_password=imap_password)
             if config.has_option(section,'all'):
                 for folder in config.get(section, 'all').split(';'):
                     account.allnotif.append(folder)
@@ -262,6 +304,13 @@ def ReadConfiguration(conffile):
             imapaccounts.append(account)
         else:
             log.error("Error: Cannot add account %s. Check your configuration file.")
+
+    # Refresh conffile
+    if need_config_update:
+        log.info("Updating configuration file with encoded passwords.")
+        with open(conffile, 'wb') as fd:
+            config.write(fd)
+
     return imapaccounts
 
 def main():
@@ -333,6 +382,7 @@ def main():
     logfile  = os.path.normpath(os.path.expanduser(logfile))
     conffile = os.path.normpath(os.path.expanduser(conffile))
     lockfile = os.path.normpath(os.path.expanduser(LOCKFILE))
+    keyfile = os.path.normpath(os.path.expanduser(KEYFILE))
 
     # Daemon
     if not foreground:

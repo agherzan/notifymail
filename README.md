@@ -13,8 +13,8 @@
 
 A. Description
 ==============
-notifmail is an email daemon checker which uses libnotify to pull for new email
-from IMAP servers. It is written in python. Easy to configure and use.
+notifmail is an email daemon checker which notifies system about new emails on
+configured IMAP servers.
 
 
 B. Installation

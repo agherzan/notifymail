@@ -61,7 +61,7 @@ LOCKFILE            = APPHOME + "/notifmail.lock"
 LOGFILE             = APPHOME + "/notifmail.log"
 KEYFILE             = APPHOME + "/notifmail.key"
 MAXLOGSIZE          = 1048576
-SECONDS             = 60
+SECONDS             = 30
 LOGLEVEL            = 30
 
 # Logger
@@ -72,20 +72,21 @@ def Usage():
     Usage function
     """
     print "Usage: notifmail [args]"
-    print "     -h | --help         :   Print this message."
-    print "     -s | --seconds      :   Specify number of seconds between imap checks. [default=60]"
-    print "                         :   Minimum value is 2 seconds."
-    print "     -l | --log          :   Log file to be used. [default=~/.notifmail/notifmail.log]"
-    print "     -c | --config       :   Config file to be used. [default=~/.notifmail/.notifmailrc]"
-    print "     -L | --loglevel     :   Log level to be used while logging. [default=30]"
-    print "                         :   Possible values:"
-    print "                         :   40 - ERROR"
-    print "                         :   30 - WARNING"
-    print "                         :   20 - INFO"
-    print "                         :   10 - DEBUG"
-    print "     -m | --maxlogsize   :   Maximum size in bytes for log file. [default=1048576]"
-    print "     -f | --foreground   :   Run program in foreground. By default notifmail runs as daemon."
-    print "     -k | --kill         :   Kill an already running daemon"
+    print "     -h | --help             :   Print this message."
+    print "     -s | --seconds          :   Specify number of seconds between imap checks. [default=60]"
+    print "                             :   Minimum value is 2 seconds."
+    print "     -l | --log              :   Log file to be used. [default=~/.notifmail/notifmail.log]"
+    print "     -c | --config           :   Config file to be used. [default=~/.notifmail/.notifmailrc]"
+    print "     -L | --loglevel         :   Log level to be used while logging. [default=30]"
+    print "                             :   Possible values:"
+    print "                             :   40 - ERROR"
+    print "                             :   30 - WARNING"
+    print "                             :   20 - INFO"
+    print "                             :   10 - DEBUG"
+    print "     -m | --maxlogsize       :   Maximum size in bytes for log file. [default=1048576]"
+    print "     -f | --foreground       :   Run program in foreground. By default notifmail runs as daemon."
+    print "     -k | --kill             :   Kill an already running daemon"
+    print "     -n | --show-current     :   Show/notify current new messages."
 
 def stopHandler(signum, frame):
     """
@@ -177,7 +178,7 @@ class Imapaccount:
             pass
         return [x for x in messages if x]
 
-    def sendIndividualNotifications(self, messages):
+    def sendIndividualNotifications(self, messages, dryrun=False):
         """
         Send a notification for each messages
         """
@@ -191,10 +192,11 @@ class Imapaccount:
                     subject = email.Header.decode_header(email_message['Subject'])[0][0]
                     notification = pynotify.Notification(self.name + ": YOU GOT NEW MAIL", "<b>From:</b> " + sender + "\n<b>Subject:</b> " + subject )
                     notification.set_urgency(pynotify.URGENCY_LOW)
-                    try:
-                        notification.show()
-                    except Exception as e:
-                        log.error("%s.", str(e))
+                    if not dryrun:
+                        try:
+                            notification.show()
+                        except Exception as e:
+                            log.error("%s.", str(e))
                     # Mark message shown
                     self.shownuids.append(uid)
                 else:
@@ -222,7 +224,7 @@ class Imapaccount:
             except Exception as e:
                 log.error("%s.", str(e))
 
-    def sendNotifications(self):
+    def sendNotifications(self, dryrun=False):
         """
         Send Notifications
         """
@@ -232,7 +234,7 @@ class Imapaccount:
             if not messages:
                 log.info("No messages found in %s.", mailbox)
                 continue
-            self.sendIndividualNotifications(messages)
+            self.sendIndividualNotifications(messages, dryrun=dryrun)
 
         self.sendSummaryNotification()
         log.debug("Sent notifications for %s.", self.imap_server)
@@ -329,6 +331,7 @@ def main():
     maxlogsize = MAXLOGSIZE
     foreground = False
     kill = False
+    showcurrent = False
 
     # Setting up the logging module
     logformatter = logging.Formatter('%(asctime)s - %(levelname)s : %(message)s')
@@ -340,7 +343,16 @@ def main():
     log.addHandler(ch)
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hs:l:c:L:m:fk', ['help', 'seconds=', 'log=', 'config=', 'loglevel', 'maxlogsize=', 'foreground', 'kill'])
+        opts, args = getopt.getopt(sys.argv[1:], 'hs:l:c:L:m:fkn', [
+            'help',
+            'seconds=',
+            'log=',
+            'config=',
+            'loglevel',
+            'maxlogsize=',
+            'foreground',
+            'kill',
+            'ignore-current'])
     except getopt.GetoptError as err:
         print str(err)
         Usage()
@@ -375,6 +387,8 @@ def main():
         elif option in ['-k', '--kill']:
             kill = True
             foreground = True
+        elif option in ['-n', '--show-current']:
+            showcurrent = True
         else:
             log.error("Unparsed error.")
             sys.exit(1)
@@ -452,6 +466,10 @@ def main():
         log.error("Parsing configuration file %s failed or no accounts defined.", conffile)
         sys.exit(1)
 
+    if not showcurrent:
+        for account in imapaccounts:
+            account.sendNotifications(dryrun=True)
+        sleep(float(seconds))
     while (True):
         for account in imapaccounts:
             account.sendNotifications()

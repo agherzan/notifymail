@@ -255,9 +255,10 @@ def ReadConfiguration(conffile):
     imapaccounts = []
     required = ['imap_server', 'imap_user', 'imap_password']
     config = ConfigParser.ConfigParser()
-    try:
-        config.read([os.path.expanduser(conffile)])
-    except:
+    config.read(conffile)
+
+    # If read fails there is no error raised
+    if not config.sections():
         return []
 
     log.debug("Parsing configuration file %s.", conffile)
@@ -457,7 +458,7 @@ def main():
 
     if not os.path.isfile(conffile):
         log.warn("No such configuration file. Using default.")
-        conffile = CONFIGURATIONFILE
+        conffile = os.path.normpath(os.path.expanduser(CONFIGURATIONFILE))
 
     pynotify.init("notifmail")
 

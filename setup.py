@@ -2,7 +2,7 @@
 
 from distutils.core import setup
 setup(name='notifmail',
-      version='1.0a',
+      version='1.0b',
       scripts=['notifmail'],
       py_modules=['notifmail_utils'],
       description='IMAP email notifier',
